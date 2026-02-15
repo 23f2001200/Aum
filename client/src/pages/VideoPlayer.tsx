@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, Navigate } from 'react-router-dom';
 import { ArrowLeft, Send, Share2, MoreHorizontal, MessageSquare, ThumbsUp, Copy, Check, Loader2, Play } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3003';
 const APP_URL = import.meta.env.VITE_APP_URL || window.location.origin;
@@ -29,6 +30,7 @@ interface Comment {
 
 export default function VideoPlayer() {
     const { id } = useParams<{ id: string }>();
+    const { user, loading: authLoading } = useAuth();
     const [video, setVideo] = useState<VideoData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -36,6 +38,11 @@ export default function VideoPlayer() {
     const [comments, setComments] = useState<Comment[]>([]);
     const [copied, setCopied] = useState(false);
     const [showShareMenu, setShowShareMenu] = useState(false);
+
+    // Redirect to login if not authenticated
+    if (!authLoading && !user) {
+        return <Navigate to="/login" replace />;
+    }
 
     // Fetch video data
     useEffect(() => {

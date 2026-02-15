@@ -126,10 +126,7 @@ export default function Login() {
 
                     <div className="mt-8 pt-6 border-t border-white/10 text-center">
                         <p className="text-sm text-zinc-400">
-                            Don't have an account?{' '}
-                            <Link to="/register" className="font-medium text-purple-400 hover:text-purple-300 transition-colors">
-                                Create free account
-                            </Link>
+                            Please sign in to access videos
                         </p>
                     </div>
                 </div>

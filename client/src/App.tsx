@@ -6,7 +6,6 @@ import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import Login from './pages/Login';
-import Register from './pages/Register';
 import RecordPage from './pages/Record';
 import VideoPlayer from './pages/VideoPlayer';
 
@@ -16,7 +15,6 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             {/* Protected routes - require authentication */}
@@ -27,7 +25,7 @@ function App() {
             } />
             <Route path="video/:id" element={<VideoPlayer />} />
           </Route>
-          {/* Custom shareable video pages - /aum/:slug (public) */}
+          {/* Custom shareable video pages - /aum/:slug (protected) */}
           <Route path="/aum/:id" element={<VideoPlayer />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
