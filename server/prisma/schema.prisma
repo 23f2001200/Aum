@@ -1,0 +1,100 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String?
+  name          String?
+  avatarUrl     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  workspaces    WorkspaceMember[]
+  videos        Video[]
+  comments      Comment[]
+  reactions     Reaction[]
+}
+
+model Workspace {
+  id          String    @id @default(uuid())
+  name        String
+  ownerId     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  members     WorkspaceMember[]
+  videos      Video[]
+}
+
+model WorkspaceMember {
+  id          String    @id @default(uuid())
+  workspaceId String
+  userId      String
+  role        Role      @default(VIEWER)
+  joinedAt    DateTime  @default(now())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@unique([workspaceId, userId])
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+model Video {
+  id          String    @id @default(uuid())
+  title       String    @default("Untitled Video")
+  description String?
+  url         String    // S3 URL or CloudFront URL
+  thumbnailUrl String?
+  duration    Int?      // In seconds
+  workspaceId String
+  ownerId     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  views       Int       @default(0)
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  owner       User      @relation(fields: [ownerId], references: [id])
+  comments    Comment[]
+}
+
+model Comment {
+  id        String    @id @default(uuid())
+  text      String
+  timestamp Int?      // Video timestamp in seconds
+  videoId   String
+  authorId  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  video     Video     @relation(fields: [videoId], references: [id])
+  author    User      @relation(fields: [authorId], references: [id])
+  reactions Reaction[]
+}
+
+model Reaction {
+  id        String   @id @default(uuid())
+  emoji     String
+  commentId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  comment   Comment  @relation(fields: [commentId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId, emoji])
+}
