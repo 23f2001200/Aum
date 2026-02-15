@@ -167,7 +167,9 @@ export const getWistiaVideo = async (hashedId: string): Promise<WistiaVideo | nu
         }
 
         const response = await axios.get(`${WISTIA_DATA_API_URL}/medias/${hashedId}.json`, {
-            params: { access_token: token },
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
         });
 
         return response.data;
@@ -186,7 +188,9 @@ export const deleteWistiaVideo = async (hashedId: string): Promise<boolean> => {
         }
 
         await axios.delete(`${WISTIA_DATA_API_URL}/medias/${hashedId}.json`, {
-            params: { access_token: token },
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
         });
 
         console.log('Video deleted from Wistia:', hashedId);
@@ -211,10 +215,10 @@ export const updateWistiaVideo = async (hashedId: string, updates: { name?: stri
             `${WISTIA_DATA_API_URL}/medias/${hashedId}.json`,
             null,
             {
-                params: {
-                    access_token: token,
-                    ...updates
+                headers: {
+                    'Authorization': `Bearer ${token}`
                 },
+                params: updates
             }
         );
 
@@ -236,7 +240,9 @@ export const getWistiaStats = async (): Promise<any> => {
         }
 
         const response = await axios.get(`${WISTIA_DATA_API_URL}/stats/account.json`, {
-            params: { access_token: token },
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
         });
 
         return response.data;
