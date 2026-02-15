@@ -44,33 +44,60 @@ export default function VideoPlayer() {
         const fetchVideo = async () => {
             try {
                 setLoading(true);
+                setError(null);
 
-                // Try fetching by slug first, then by wistia ID
-                let response = await fetch(`${API_URL}/videos/slug/${id}`);
+                // Try fetching by Wistia ID first (most reliable), then by slug
+                let response = await fetch(`${API_URL}/videos/wistia/${id}`);
 
                 if (!response.ok) {
-                    // Fallback to wistia ID
-                    response = await fetch(`${API_URL}/videos/wistia/${id}`);
+                    // Fallback to slug
+                    response = await fetch(`${API_URL}/videos/slug/${id}`);
                 }
 
                 if (!response.ok) {
-                    throw new Error('Video not found');
+                    // Last resort: create a minimal video object for direct Wistia playback
+                    setVideo({
+                        id: id,
+                        wistiaId: id,
+                        title: 'Video',
+                        views: 0,
+                        createdAt: new Date().toISOString(),
+                        embedUrl: `//fast.wistia.net/embed/iframe/${id}`
+                    });
+                    setLoading(false);
+                    return;
                 }
 
                 const data = await response.json();
-                setVideo(data);
+                setVideo({
+                    ...data,
+                    wistiaId: data.wistiaId || id
+                });
 
-                // Fetch comments if we have a video ID
+                // Fetch comments if we have a video ID (optional, may fail)
                 if (data.id) {
-                    const commentsRes = await fetch(`${API_URL}/videos/${data.id}/comments`);
-                    if (commentsRes.ok) {
-                        const commentsData = await commentsRes.json();
-                        setComments(commentsData);
+                    try {
+                        const commentsRes = await fetch(`${API_URL}/videos/${data.id}/comments`);
+                        if (commentsRes.ok) {
+                            const commentsData = await commentsRes.json();
+                            setComments(commentsData);
+                        }
+                    } catch (e) {
+                        // Comments are optional, don't fail the page
+                        console.log('Could not fetch comments');
                     }
                 }
             } catch (err: any) {
                 console.error('Error fetching video:', err);
-                setError(err.message);
+                // Still try to play the video directly via Wistia
+                setVideo({
+                    id: id,
+                    wistiaId: id,
+                    title: 'Video',
+                    views: 0,
+                    createdAt: new Date().toISOString(),
+                    embedUrl: `//fast.wistia.net/embed/iframe/${id}`
+                });
             } finally {
                 setLoading(false);
             }

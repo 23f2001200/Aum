@@ -325,11 +325,9 @@ export default function Recorder() {
             const data = await response.json();
             log('Upload successful: ' + JSON.stringify(data));
 
-            // 2. Redirect to video player with custom slug or Wistia ID
-            if (data.customSlug) {
-                navigate(`/aum/${data.customSlug}`);
-            } else if (data.hashed_id) {
-                navigate(`/video/${data.hashed_id}`);
+            // 2. Redirect to video player with Wistia hashed_id (most reliable)
+            if (data.hashed_id) {
+                navigate(`/aum/${data.hashed_id}`);
             } else {
                 alert('Upload successful but no video ID returned.');
             }
