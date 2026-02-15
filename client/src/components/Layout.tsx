@@ -1,11 +1,33 @@
 
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LogOut, Video, Home, Settings, Search, Plus, Menu } from 'lucide-react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { LogOut, Video, Home, Settings, Search, Plus, Menu, User } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function Layout() {
     const location = useLocation();
+    const navigate = useNavigate();
+    const { user, signOut } = useAuth();
 
     const isActive = (path: string) => location.pathname === path;
+
+    const handleSignOut = async () => {
+        await signOut();
+        navigate('/login');
+    };
+
+    // Get user initials for avatar
+    const getUserInitials = () => {
+        if (!user) return '?';
+        const name = user.user_metadata?.name || user.email || '';
+        if (name.includes('@')) {
+            return name.charAt(0).toUpperCase();
+        }
+        const parts = name.split(' ');
+        if (parts.length >= 2) {
+            return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+        }
+        return name.charAt(0).toUpperCase();
+    };
 
     return (
         <div className="flex h-screen bg-zinc-950 text-zinc-100 overflow-hidden font-sans">
@@ -41,10 +63,23 @@ export default function Layout() {
                 </div>
 
                 <div className="p-4 border-t border-white/5">
-                    <button className="flex items-center lg:w-full justify-center lg:justify-start px-3 py-3 text-sm font-medium text-zinc-400 rounded-xl hover:bg-white/5 hover:text-white transition-all duration-200 group">
-                        <LogOut className="h-5 w-5 lg:mr-3 group-hover:text-pink-500 transition-colors" />
-                        <span className="hidden lg:block">Sign Out</span>
-                    </button>
+                    {user ? (
+                        <button 
+                            onClick={handleSignOut}
+                            className="flex items-center lg:w-full justify-center lg:justify-start px-3 py-3 text-sm font-medium text-zinc-400 rounded-xl hover:bg-white/5 hover:text-white transition-all duration-200 group"
+                        >
+                            <LogOut className="h-5 w-5 lg:mr-3 group-hover:text-pink-500 transition-colors" />
+                            <span className="hidden lg:block">Sign Out</span>
+                        </button>
+                    ) : (
+                        <Link 
+                            to="/login"
+                            className="flex items-center lg:w-full justify-center lg:justify-start px-3 py-3 text-sm font-medium text-zinc-400 rounded-xl hover:bg-white/5 hover:text-white transition-all duration-200 group"
+                        >
+                            <User className="h-5 w-5 lg:mr-3 group-hover:text-purple-500 transition-colors" />
+                            <span className="hidden lg:block">Sign In</span>
+                        </Link>
+                    )}
                 </div>
             </aside>
 
@@ -78,17 +113,28 @@ export default function Layout() {
                     </div>
 
                     <div className="flex items-center gap-4 ml-4">
-                        <Link
-                            to="/record"
-                            className="hidden sm:flex items-center px-5 py-2.5 rounded-full text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-lg shadow-purple-900/20 transition-all hover:scale-105 active:scale-95"
-                        >
-                            <Plus className="h-4 w-4 mr-2" />
-                            New Video
-                        </Link>
+                        {user ? (
+                            <>
+                                <Link
+                                    to="/record"
+                                    className="hidden sm:flex items-center px-5 py-2.5 rounded-full text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-lg shadow-purple-900/20 transition-all hover:scale-105 active:scale-95"
+                                >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    New Video
+                                </Link>
 
-                        <button className="h-10 w-10 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-700 flex items-center justify-center text-zinc-300 font-semibold ring-2 ring-transparent hover:ring-purple-500/50 transition-all shadow-md">
-                            <span className="text-sm">JD</span>
-                        </button>
+                                <button className="h-10 w-10 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-700 flex items-center justify-center text-zinc-300 font-semibold ring-2 ring-transparent hover:ring-purple-500/50 transition-all shadow-md">
+                                    <span className="text-sm">{getUserInitials()}</span>
+                                </button>
+                            </>
+                        ) : (
+                            <Link
+                                to="/login"
+                                className="hidden sm:flex items-center px-5 py-2.5 rounded-full text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-lg shadow-purple-900/20 transition-all hover:scale-105 active:scale-95"
+                            >
+                                Sign In
+                            </Link>
+                        )}
                     </div>
                 </header>
 

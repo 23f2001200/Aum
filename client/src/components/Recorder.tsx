@@ -1,17 +1,24 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { Camera, CameraOff, Monitor, RefreshCw, Square, Download, Upload, Mic, MicOff, Settings } from 'lucide-react';
+import { Camera, CameraOff, Monitor, RefreshCw, Square, Download, Upload, Mic, MicOff, Settings, Edit3, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const log = (msg: string) => console.log(`[Recorder] ${msg}`);
 
 export default function Recorder() {
     const navigate = useNavigate();
+    const { getAccessToken } = useAuth();
     const [isRecording, setIsRecording] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [debugInfo, setDebugInfo] = useState('Ready');
     const [webcamEnabled, setWebcamEnabled] = useState(false);
     const [webcamReady, setWebcamReady] = useState(false);
+    
+    // Video metadata
+    const [showMetadataModal, setShowMetadataModal] = useState(false);
+    const [videoTitle, setVideoTitle] = useState('');
+    const [videoDescription, setVideoDescription] = useState('');
 
     // Initial position for the bubble (bottom-right)
     const [bubblePos, setBubblePos] = useState({ x: 85, y: 80 });
@@ -308,13 +315,26 @@ export default function Recorder() {
             const filename = `recording-${Date.now()}.webm`;
             const file = new File([blobRef.current], filename, { type: blobRef.current.type });
 
-            // 1. Upload to backend (which uploads to Wistia)
+            // Get auth token
+            const token = await getAccessToken();
+            if (!token) {
+                throw new Error('Not authenticated. Please sign in.');
+            }
+
+            // Build URL with query params for title/description
             const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3003';
-            const response = await fetch(`${API_URL}/uploads/${filename}`, {
+            const params = new URLSearchParams();
+            if (videoTitle) params.append('title', videoTitle);
+            if (videoDescription) params.append('description', videoDescription);
+            
+            const url = `${API_URL}/uploads/${filename}${params.toString() ? '?' + params.toString() : ''}`;
+            
+            const response = await fetch(url, {
                 method: 'PUT',
                 body: file,
                 headers: {
-                    'Content-Type': file.type
+                    'Content-Type': file.type,
+                    'Authorization': `Bearer ${token}`
                 }
             });
 
@@ -469,6 +489,8 @@ export default function Recorder() {
                                     setPreviewUrl(null);
                                     chunksRef.current = [];
                                     blobRef.current = null;
+                                    setVideoTitle('');
+                                    setVideoDescription('');
                                 }}
                                 className="px-5 py-2.5 border border-white/10 text-zinc-400 rounded-xl hover:bg-white/5 hover:text-white transition-colors flex items-center text-sm font-medium"
                             >
@@ -484,7 +506,7 @@ export default function Recorder() {
                                 Download
                             </a>
                             <button
-                                onClick={uploadRecording}
+                                onClick={() => setShowMetadataModal(true)}
                                 disabled={isUploading}
                                 className="flex items-center px-6 py-2.5 bg-white text-black rounded-xl hover:bg-zinc-200 shadow-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-[1.02] active:scale-[0.98] text-sm"
                             >
@@ -501,6 +523,71 @@ export default function Recorder() {
                     </button>
                 </div>
             </div>
+
+            {/* Video Metadata Modal */}
+            {showMetadataModal && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-zinc-900 rounded-2xl p-6 w-full max-w-md border border-white/10 shadow-2xl">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-bold text-white">Video Details</h3>
+                            <button 
+                                onClick={() => setShowMetadataModal(false)}
+                                className="text-zinc-400 hover:text-white transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+                                    Title
+                                </label>
+                                <input
+                                    type="text"
+                                    value={videoTitle}
+                                    onChange={(e) => setVideoTitle(e.target.value)}
+                                    placeholder="Enter video title..."
+                                    className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+                                    Description (optional)
+                                </label>
+                                <textarea
+                                    value={videoDescription}
+                                    onChange={(e) => setVideoDescription(e.target.value)}
+                                    placeholder="Add a description..."
+                                    rows={3}
+                                    className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 resize-none"
+                                />
+                            </div>
+                        </div>
+                        
+                        <div className="flex justify-end gap-3 mt-6">
+                            <button
+                                onClick={() => setShowMetadataModal(false)}
+                                className="px-4 py-2 text-zinc-400 hover:text-white transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowMetadataModal(false);
+                                    uploadRecording();
+                                }}
+                                disabled={isUploading}
+                                className="flex items-center px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-500 hover:to-pink-500 shadow-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            >
+                                <Upload className="w-4 h-4 mr-2" />
+                                Upload Video
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Video, MoreVertical, Share2, Trash2, Play, Loader2, RefreshCw, Edit2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3003';
 
@@ -39,6 +40,7 @@ function formatTimeAgo(dateStr: string): string {
 }
 
 export default function Home() {
+    const { user, getAccessToken } = useAuth();
     const [videos, setVideos] = useState<VideoItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState<string | null>(null);
@@ -69,6 +71,11 @@ export default function Home() {
         e.preventDefault();
         e.stopPropagation();
         
+        if (!user) {
+            alert('Please sign in to delete videos');
+            return;
+        }
+        
         if (!confirm('Are you sure you want to delete this video? This cannot be undone.')) {
             return;
         }
@@ -77,8 +84,12 @@ export default function Home() {
             setDeleting(wistiaId);
             setMenuOpen(null);
             
+            const token = await getAccessToken();
             const response = await fetch(`${API_URL}/wistia/videos/${wistiaId}`, {
                 method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             });
 
             if (!response.ok) {

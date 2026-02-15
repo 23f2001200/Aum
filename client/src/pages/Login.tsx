@@ -1,18 +1,39 @@
 
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, Video } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Mail, Lock, ArrowRight, Video, Loader2, AlertCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
+    const location = useLocation();
+    const { signIn } = useAuth();
+
+    // Get the redirect path from location state, or default to home
+    const from = (location.state as any)?.from?.pathname || '/';
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // TODO: Implement actual login logic
-        console.log('Login:', { email, password });
-        navigate('/');
+        setError(null);
+        setLoading(true);
+
+        try {
+            const { error } = await signIn(email, password);
+            
+            if (error) {
+                setError(error.message);
+            } else {
+                navigate(from, { replace: true });
+            }
+        } catch (err: any) {
+            setError(err.message || 'Failed to sign in');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -44,6 +65,12 @@ export default function Login() {
                     </div>
 
                     <form className="space-y-5" onSubmit={handleSubmit}>
+                        {error && (
+                            <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm">
+                                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                                <span>{error}</span>
+                            </div>
+                        )}
                         <div>
                             <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2 ml-1">Email</label>
                             <div className="relative group">
@@ -83,10 +110,17 @@ export default function Login() {
 
                         <button
                             type="submit"
-                            className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-lg shadow-purple-900/20 text-sm font-bold text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-900 focus:ring-purple-500 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                            disabled={loading}
+                            className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-lg shadow-purple-900/20 text-sm font-bold text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-900 focus:ring-purple-500 transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                         >
-                            Sign in
-                            <ArrowRight className="ml-2 h-4 w-4" />
+                            {loading ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                                <>
+                                    Sign in
+                                    <ArrowRight className="ml-2 h-4 w-4" />
+                                </>
+                            )}
                         </button>
                     </form>
 

@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import authRoutes from './routes/authRoutes';
+import { authMiddleware, optionalAuthMiddleware } from './middleware/authMiddleware';
 
 import { PrismaClient } from './mockPrisma';
 import * as videoService from './services/videoService';
@@ -23,7 +24,7 @@ app.use(express.json());
 
 app.use('/auth', authRoutes);
 
-// Video Upload Route (Wistia + Supabase)
+// Video Upload Route (Wistia + Supabase) - PROTECTED
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
@@ -48,10 +49,40 @@ const upload = multer({ storage });
 
 app.use('/uploads', express.static(uploadDir));
 
-// Upload video - saves to Wistia + Supabase
-app.put('/uploads/:filename', (req, res) => {
-    console.log(`Receiving upload for ${req.params.filename}`);
-    const filePath = path.join(uploadDir, req.params.filename);
+// Auth session endpoint - get current user
+app.get('/auth/session', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.json({ user: null });
+        }
+
+        const token = authHeader.split(' ')[1];
+        const { supabase } = await import('./services/supabase');
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+
+        if (error || !user) {
+            return res.json({ user: null });
+        }
+
+        res.json({ 
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.user_metadata?.name
+            }
+        });
+    } catch (error) {
+        console.error('Session check error:', error);
+        res.json({ user: null });
+    }
+});
+
+// Upload video - saves to Wistia + Supabase (PROTECTED - requires auth)
+app.put('/uploads/:filename', authMiddleware, (req, res) => {
+    const filename = req.params.filename as string;
+    console.log(`Receiving upload for ${filename} from user ${req.user?.email}`);
+    const filePath = path.join(uploadDir, filename);
     const writeStream = fs.createWriteStream(filePath);
     const customSlug = req.query.slug as string | undefined;
 
@@ -60,7 +91,15 @@ app.put('/uploads/:filename', (req, res) => {
     writeStream.on('finish', async () => {
         console.log('Upload finished locally, uploading to Wistia...');
         try {
-            const wistiaData = await uploadToWistia(filePath, customSlug);
+            // Get title from query params or use filename
+            const title = (req.query.title as string) || filename.replace(/\.[^/.]+$/, '');
+            const description = req.query.description as string | undefined;
+            
+            const wistiaData = await uploadToWistia(filePath, customSlug, {
+                title,
+                description,
+                ownerId: req.user?.id
+            });
             // Optionally delete local file
             // fs.unlinkSync(filePath);
             res.status(200).json(wistiaData);
@@ -94,10 +133,10 @@ app.get('/wistia/videos/:hashedId', async (req, res) => {
     }
 });
 
-// Delete video from Wistia (and optionally from Supabase)
-app.delete('/wistia/videos/:hashedId', async (req, res) => {
+// Delete video from Wistia (and optionally from Supabase) - PROTECTED
+app.delete('/wistia/videos/:hashedId', authMiddleware, async (req, res) => {
     try {
-        const hashedId = req.params.hashedId;
+        const hashedId = req.params.hashedId as string;
         
         // Delete from Wistia
         const wistiaDeleted = await deleteWistiaVideo(hashedId);
@@ -118,11 +157,12 @@ app.delete('/wistia/videos/:hashedId', async (req, res) => {
     }
 });
 
-// Update video in Wistia
-app.patch('/wistia/videos/:hashedId', async (req, res) => {
+// Update video in Wistia - PROTECTED
+app.patch('/wistia/videos/:hashedId', authMiddleware, async (req, res) => {
     try {
+        const hashedId = req.params.hashedId as string;
         const { name, description } = req.body;
-        const updated = await updateWistiaVideo(req.params.hashedId, { name, description });
+        const updated = await updateWistiaVideo(hashedId, { name, description });
         
         if (!updated) {
             return res.status(500).json({ error: 'Failed to update video in Wistia' });
@@ -185,7 +225,8 @@ app.get('/videos', async (req, res) => {
 // Get video by custom slug (for /aum/:slug routes)
 app.get('/videos/slug/:slug', async (req, res) => {
     try {
-        const video = await videoService.getVideoBySlug(req.params.slug);
+        const slug = req.params.slug as string;
+        const video = await videoService.getVideoBySlug(slug);
         if (!video) {
             return res.status(404).json({ error: 'Video not found' });
         }
@@ -214,13 +255,14 @@ app.get('/videos/slug/:slug', async (req, res) => {
 // Get video by Wistia ID (backward compatibility)
 app.get('/videos/wistia/:wistiaId', async (req, res) => {
     try {
-        const video = await videoService.getVideoByWistiaId(req.params.wistiaId);
+        const wistiaId = req.params.wistiaId as string;
+        const video = await videoService.getVideoByWistiaId(wistiaId);
         if (!video) {
             // Fallback: return basic info for Wistia videos not in DB
             return res.json({
-                wistiaId: req.params.wistiaId,
+                wistiaId: wistiaId,
                 title: 'Video',
-                embedUrl: `//fast.wistia.net/embed/iframe/${req.params.wistiaId}`
+                embedUrl: `//fast.wistia.net/embed/iframe/${wistiaId}`
             });
         }
         
@@ -244,11 +286,12 @@ app.get('/videos/wistia/:wistiaId', async (req, res) => {
     }
 });
 
-// Update video metadata
-app.patch('/videos/:id', async (req, res) => {
+// Update video metadata - PROTECTED
+app.patch('/videos/:id', authMiddleware, async (req, res) => {
     try {
+        const id = req.params.id as string;
         const { title, description, isPublic } = req.body;
-        const video = await videoService.updateVideo(req.params.id, {
+        const video = await videoService.updateVideo(id, {
             title,
             description,
             is_public: isPublic
@@ -265,10 +308,11 @@ app.patch('/videos/:id', async (req, res) => {
     }
 });
 
-// Delete video
-app.delete('/videos/:id', async (req, res) => {
+// Delete video - PROTECTED
+app.delete('/videos/:id', authMiddleware, async (req, res) => {
     try {
-        const success = await videoService.deleteVideo(req.params.id);
+        const id = req.params.id as string;
+        const success = await videoService.deleteVideo(id);
         if (!success) {
             return res.status(404).json({ error: 'Video not found' });
         }
@@ -286,7 +330,8 @@ app.delete('/videos/:id', async (req, res) => {
 // Get comments for a video
 app.get('/videos/:videoId/comments', async (req, res) => {
     try {
-        const comments = await videoService.getCommentsByVideoId(req.params.videoId);
+        const videoId = req.params.videoId as string;
+        const comments = await videoService.getCommentsByVideoId(videoId);
         res.json(comments);
     } catch (error) {
         console.error(error);
@@ -294,15 +339,16 @@ app.get('/videos/:videoId/comments', async (req, res) => {
     }
 });
 
-// Add comment to video
-app.post('/videos/:videoId/comments', async (req, res) => {
+// Add comment to video - PROTECTED
+app.post('/videos/:videoId/comments', authMiddleware, async (req, res) => {
     try {
-        const { text, timestampSeconds, authorId } = req.body;
+        const videoId = req.params.videoId as string;
+        const { text, timestampSeconds } = req.body;
         const comment = await videoService.createComment({
-            videoId: req.params.videoId,
+            videoId: videoId,
             text,
             timestampSeconds,
-            authorId
+            authorId: req.user?.id  // Use authenticated user ID
         });
         
         if (!comment) {
@@ -316,10 +362,11 @@ app.post('/videos/:videoId/comments', async (req, res) => {
     }
 });
 
-// Delete comment
-app.delete('/comments/:id', async (req, res) => {
+// Delete comment - PROTECTED
+app.delete('/comments/:id', authMiddleware, async (req, res) => {
     try {
-        const success = await videoService.deleteComment(req.params.id);
+        const id = req.params.id as string;
+        const success = await videoService.deleteComment(id);
         if (!success) {
             return res.status(404).json({ error: 'Comment not found' });
         }
@@ -334,16 +381,18 @@ app.delete('/comments/:id', async (req, res) => {
 // SHARING LINKS API ROUTES
 // =====================================================
 
-// Create sharing link
-app.post('/videos/:videoId/share', async (req, res) => {
+// Create sharing link - PROTECTED
+app.post('/videos/:videoId/share', authMiddleware, async (req, res) => {
     try {
+        const videoId = req.params.videoId as string;
         const { customAlias, password, expiresAt, maxViews } = req.body;
         const sharingLink = await videoService.createSharingLink({
-            videoId: req.params.videoId,
+            videoId: videoId,
             customAlias,
             password,
             expiresAt: expiresAt ? new Date(expiresAt) : undefined,
-            maxViews
+            maxViews,
+            createdBy: req.user?.id  // Use authenticated user ID
         });
         
         if (!sharingLink) {

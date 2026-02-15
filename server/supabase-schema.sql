@@ -206,6 +206,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Function to increment video views atomically
+CREATE OR REPLACE FUNCTION increment_views(video_id UUID)
+RETURNS void AS $$
+BEGIN
+    UPDATE videos SET views = views + 1 WHERE id = video_id;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Apply updated_at triggers
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

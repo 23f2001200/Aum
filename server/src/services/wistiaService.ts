@@ -38,7 +38,13 @@ export interface WistiaVideo {
     };
 }
 
-export const uploadToWistia = async (filePath: string, customSlug?: string): Promise<WistiaUploadResult> => {
+export interface UploadOptions {
+    title?: string;
+    description?: string;
+    ownerId?: string;
+}
+
+export const uploadToWistia = async (filePath: string, customSlug?: string, options?: UploadOptions): Promise<WistiaUploadResult> => {
     const token = process.env.WISTIA_ACCESS_TOKEN;
     console.log('Wistia Token:', token ? 'Found' : 'Missing');
     if (!token) {
@@ -60,14 +66,16 @@ export const uploadToWistia = async (filePath: string, customSlug?: string): Pro
         const wistiaData = response.data;
         console.log('Wistia upload successful:', wistiaData.hashed_id);
 
-        // Save to Supabase database
+        // Save to Supabase database with accurate duration from Wistia
         const dbVideo = await createVideo({
             wistiaHashedId: wistiaData.hashed_id,
-            title: wistiaData.name || 'Untitled Video',
+            title: options?.title || wistiaData.name || 'Untitled Video',
+            description: options?.description,
             thumbnailUrl: wistiaData.thumbnail?.url,
-            duration: Math.round(wistiaData.duration || 0),
+            duration: Math.round(wistiaData.duration || 0), // Use Wistia's duration
             wistiaMetadata: wistiaData,
-            customSlug: customSlug
+            customSlug: customSlug,
+            ownerId: options?.ownerId
         });
 
         if (dbVideo) {
