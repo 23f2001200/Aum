@@ -103,16 +103,23 @@ export const uploadToWistia = async (filePath: string, customSlug?: string, opti
 export const listWistiaVideos = async (): Promise<WistiaVideo[]> => {
     try {
         const token = process.env.WISTIA_ACCESS_TOKEN;
-        console.log('List Wistia Token:', token ? 'Found' : 'Missing');
+        console.log('List Wistia Token:', token ? `Found (${token.substring(0, 10)}...)` : 'Missing');
 
         if (!token) {
             console.warn('WISTIA_ACCESS_TOKEN is not configured, returning empty list.');
             return [];
         }
 
+        console.log('Fetching videos from Wistia API...');
         const response = await axios.get(`${WISTIA_DATA_API_URL}/medias.json`, {
             params: { access_token: token },
         });
+
+        console.log(`Wistia API returned ${response.data?.length || 0} videos`);
+        
+        if (!response.data || response.data.length === 0) {
+            console.log('Wistia response data:', JSON.stringify(response.data).substring(0, 200));
+        }
 
         // Return full Wistia video data
         return response.data.map((video: any) => ({
@@ -137,6 +144,8 @@ export const listWistiaVideos = async (): Promise<WistiaVideo[]> => {
     } catch (error: any) {
         const errorMsg = error.response?.data ? JSON.stringify(error.response.data) : error.message;
         console.error('Wistia List Error:', errorMsg);
+        console.error('Error status:', error.response?.status);
+        console.error('Error headers:', error.response?.headers);
 
         // Log to file for debugging
         fs.appendFileSync('wistia-error.log', `${new Date().toISOString()} - List Error: ${errorMsg}\n`);
