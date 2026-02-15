@@ -111,8 +111,12 @@ export const listWistiaVideos = async (): Promise<WistiaVideo[]> => {
         }
 
         console.log('Fetching videos from Wistia API...');
+        
+        // Use Bearer token authentication in header (required for Data API)
         const response = await axios.get(`${WISTIA_DATA_API_URL}/medias.json`, {
-            params: { access_token: token },
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
         });
 
         console.log(`Wistia API returned ${response.data?.length || 0} videos`);
