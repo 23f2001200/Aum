@@ -27,7 +27,7 @@ app.use('/auth', authRoutes);
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
-import { uploadToWistia, listWistiaVideos } from './services/wistiaService';
+import { uploadToWistia, listWistiaVideos, deleteWistiaVideo, updateWistiaVideo, getWistiaVideo, getWistiaStats } from './services/wistiaService';
 
 // Ensure uploads directory exists (still needed for temporary storage)
 const uploadDir = path.join(__dirname, '../uploads');
@@ -77,25 +77,102 @@ app.put('/uploads/:filename', (req, res) => {
 });
 
 // =====================================================
-// VIDEO API ROUTES (Supabase)
+// WISTIA MANAGEMENT API ROUTES
 // =====================================================
 
-// List all videos from Supabase
+// Get single Wistia video details
+app.get('/wistia/videos/:hashedId', async (req, res) => {
+    try {
+        const video = await getWistiaVideo(req.params.hashedId);
+        if (!video) {
+            return res.status(404).json({ error: 'Video not found in Wistia' });
+        }
+        res.json(video);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch video from Wistia' });
+    }
+});
+
+// Delete video from Wistia (and optionally from Supabase)
+app.delete('/wistia/videos/:hashedId', async (req, res) => {
+    try {
+        const hashedId = req.params.hashedId;
+        
+        // Delete from Wistia
+        const wistiaDeleted = await deleteWistiaVideo(hashedId);
+        if (!wistiaDeleted) {
+            return res.status(500).json({ error: 'Failed to delete video from Wistia' });
+        }
+        
+        // Also try to delete from Supabase if it exists there
+        const dbVideo = await videoService.getVideoByWistiaId(hashedId);
+        if (dbVideo) {
+            await videoService.deleteVideo(dbVideo.id);
+        }
+        
+        res.json({ success: true, message: 'Video deleted from Wistia' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to delete video' });
+    }
+});
+
+// Update video in Wistia
+app.patch('/wistia/videos/:hashedId', async (req, res) => {
+    try {
+        const { name, description } = req.body;
+        const updated = await updateWistiaVideo(req.params.hashedId, { name, description });
+        
+        if (!updated) {
+            return res.status(500).json({ error: 'Failed to update video in Wistia' });
+        }
+        
+        res.json(updated);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to update video' });
+    }
+});
+
+// Get Wistia account stats
+app.get('/wistia/stats', async (req, res) => {
+    try {
+        const stats = await getWistiaStats();
+        if (!stats) {
+            return res.status(500).json({ error: 'Failed to fetch Wistia stats' });
+        }
+        res.json(stats);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch stats' });
+    }
+});
+
+// =====================================================
+// VIDEO API ROUTES (Supabase - for metadata/slugs)
+// =====================================================
+
+// List all videos from Wistia (primary source)
 app.get('/videos', async (req, res) => {
     console.log('GET /videos request received');
     try {
-        const videos = await videoService.listVideos();
+        const wistiaVideos = await listWistiaVideos();
         
         // Transform to match frontend expected format
-        const formattedVideos = videos.map(v => ({
-            id: v.custom_slug || v.wistia_hashed_id,
-            wistiaId: v.wistia_hashed_id,
-            title: v.title,
-            thumbnailUrl: v.thumbnail_url,
-            createdAt: v.created_at,
+        const formattedVideos = wistiaVideos.map(v => ({
+            id: v.hashed_id,
+            wistiaId: v.hashed_id,
+            title: v.name,
+            description: v.description,
+            thumbnailUrl: v.thumbnail?.url,
+            createdAt: v.created,
+            updatedAt: v.updated,
             duration: v.duration,
-            views: v.views,
-            customSlug: v.custom_slug
+            views: v.stats?.plays || 0,
+            visitors: v.stats?.visitors || 0,
+            status: v.status,
+            type: v.type
         }));
         
         res.json(formattedVideos);
