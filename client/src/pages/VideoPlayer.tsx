@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, User, Send, Share2, MoreHorizontal, MessageSquare, ThumbsUp, Copy, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, Share2, MoreHorizontal, MessageSquare, ThumbsUp, Copy, Check, Loader2, Play } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3003';
 const APP_URL = import.meta.env.VITE_APP_URL || window.location.origin;
@@ -44,22 +44,22 @@ export default function VideoPlayer() {
         const fetchVideo = async () => {
             try {
                 setLoading(true);
-                
+
                 // Try fetching by slug first, then by wistia ID
                 let response = await fetch(`${API_URL}/videos/slug/${id}`);
-                
+
                 if (!response.ok) {
                     // Fallback to wistia ID
                     response = await fetch(`${API_URL}/videos/wistia/${id}`);
                 }
-                
+
                 if (!response.ok) {
                     throw new Error('Video not found');
                 }
-                
+
                 const data = await response.json();
                 setVideo(data);
-                
+
                 // Fetch comments if we have a video ID
                 if (data.id) {
                     const commentsRes = await fetch(`${API_URL}/videos/${data.id}/comments`);
@@ -135,17 +135,17 @@ export default function VideoPlayer() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-screen bg-white">
-                <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+            <div className="flex items-center justify-center h-screen">
+                <Loader2 className="h-10 w-10 animate-spin text-purple-500" />
             </div>
         );
     }
 
     if (error || !video) {
         return (
-            <div className="flex flex-col items-center justify-center h-screen bg-white">
-                <p className="text-red-500 mb-4">{error || 'Video not found'}</p>
-                <Link to="/" className="text-orange-500 hover:underline">Back to Library</Link>
+            <div className="flex flex-col items-center justify-center h-screen">
+                <p className="text-red-400 mb-4 text-lg">{error || 'Video not found'}</p>
+                <Link to="/" className="text-purple-400 hover:text-purple-300 hover:underline">Back to Library</Link>
             </div>
         );
     }
@@ -153,19 +153,19 @@ export default function VideoPlayer() {
     const wistiaId = video.wistiaId;
 
     return (
-        <div className="bg-white min-h-full">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="min-h-full pb-12">
+            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Back Link */}
-                <Link to="/" className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 mb-6 transition-colors group">
+                <Link to="/" className="inline-flex items-center text-sm font-medium text-zinc-400 hover:text-white mb-8 transition-colors group">
                     <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
                     Back to Library
                 </Link>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                     {/* Main Content Column */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="xl:col-span-2 space-y-6">
                         {/* Video Player Container */}
-                        <div className="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl relative ring-1 ring-gray-900/5">
+                        <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl relative ring-1 ring-white/10 group">
                             <iframe
                                 src={`//fast.wistia.net/embed/iframe/${wistiaId}?videoFoam=true&autoPlay=true`}
                                 title="Wistia Video Player"
@@ -177,14 +177,17 @@ export default function VideoPlayer() {
                                 name="wistia_embed"
                             ></iframe>
                             <script src="//fast.wistia.net/assets/external/E-v1.js" async></script>
+                            <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_100px_rgba(0,0,0,0.5)]"></div>
                         </div>
 
                         {/* Title & Actions */}
-                        <div className="flex justify-between items-start">
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{video.title}</h1>
-                                <div className="flex items-center mt-2 space-x-4 text-sm text-gray-500">
-                                    <span>{formatDate(video.createdAt)}</span>
+                                <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">{video.title}</h1>
+                                <div className="flex items-center mt-3 space-x-4 text-sm text-zinc-400">
+                                    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/5 border border-white/5">
+                                        {formatDate(video.createdAt)}
+                                    </span>
                                     <span>•</span>
                                     <span>Duration: {formatDuration(video.duration)}</span>
                                     <span>•</span>
@@ -192,96 +195,118 @@ export default function VideoPlayer() {
                                 </div>
                             </div>
                             <div className="flex space-x-3 relative">
-                                <button 
+                                <button
                                     onClick={() => setShowShareMenu(!showShareMenu)}
-                                    className="inline-flex items-center px-4 py-2 border border-gray-200 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                                    className="inline-flex items-center px-4 py-2.5 border border-white/10 shadow-lg shadow-purple-900/10 text-sm font-medium rounded-xl text-white bg-white/5 hover:bg-white/10 transition-all hover:scale-105 active:scale-95"
                                 >
                                     <Share2 className="h-4 w-4 mr-2" />
                                     Share
                                 </button>
-                                
+
                                 {/* Share Menu */}
                                 {showShareMenu && (
-                                    <div className="absolute right-0 top-12 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50 w-80">
-                                        <p className="text-sm font-medium text-gray-700 mb-2">Share this video</p>
+                                    <div className="absolute right-0 top-14 glass text-zinc-100 rounded-xl p-4 z-50 w-80 animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <p className="text-sm font-medium text-white">Share this video</p>
+                                            <button onClick={() => setShowShareMenu(false)} className="text-zinc-500 hover:text-white">
+                                                <span className="sr-only">Close</span>
+                                                &times;
+                                            </button>
+                                        </div>
+
                                         <div className="flex items-center space-x-2">
                                             <input
                                                 type="text"
                                                 readOnly
                                                 value={`${window.location.origin}/aum/${video.customSlug || video.wistiaId}`}
-                                                className="flex-1 text-sm bg-gray-50 border border-gray-200 rounded px-3 py-2"
+                                                className="flex-1 text-sm bg-zinc-900/50 border border-white/10 rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
                                             />
                                             <button
                                                 onClick={copyShareLink}
-                                                className="p-2 bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors"
+                                                className="p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition-colors shadow-lg shadow-purple-900/20"
                                             >
                                                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                                             </button>
                                         </div>
-                                        {copied && <p className="text-xs text-green-600 mt-2">Link copied!</p>}
+                                        {copied && <p className="text-xs text-green-400 mt-2 font-medium">Link copied to clipboard!</p>}
                                     </div>
                                 )}
-                                
-                                <button className="p-2 border border-gray-200 shadow-sm rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors">
+
+                                <button className="p-2.5 border border-white/10 shadow-lg rounded-xl text-zinc-400 bg-white/5 hover:bg-white/10 hover:text-white transition-all hover:scale-105 active:scale-95">
                                     <MoreHorizontal className="h-5 w-5" />
                                 </button>
                             </div>
                         </div>
 
                         {video.description && (
-                            <p className="text-gray-600">{video.description}</p>
+                            <div className="glass p-6 rounded-2xl">
+                                <p className="text-zinc-300 leading-relaxed">{video.description}</p>
+                            </div>
                         )}
 
-                        <div className="border-t border-gray-100 pt-6">
+                        <div className="border-t border-white/5 pt-6">
                             <div className="flex items-center space-x-4">
-                                <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-semibold ring-2 ring-white">
+                                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold ring-4 ring-zinc-900 shadow-xl">
                                     U
                                 </div>
                                 <div>
-                                    <p className="text-sm font-semibold text-gray-900">Video Owner</p>
-                                    <p className="text-xs text-gray-500">Uploaded {formatTimeAgo(video.createdAt)}</p>
+                                    <p className="text-base font-semibold text-white">Video Owner</p>
+                                    <p className="text-xs text-zinc-500 font-medium">Uploaded {formatTimeAgo(video.createdAt)}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Sidebar / Comments Column */}
-                    <div className="lg:col-span-1">
-                        <div className="bg-gray-50 rounded-xl border border-gray-100 flex flex-col h-[600px]">
-                            <div className="p-4 border-b border-gray-100 bg-white rounded-t-xl flex justify-between items-center">
-                                <h2 className="text-sm font-bold text-gray-900 flex items-center">
-                                    <MessageSquare className="h-4 w-4 mr-2 text-orange-500" />
+                    <div className="xl:col-span-1">
+                        <div className="glass rounded-2xl flex flex-col h-[600px] overflow-hidden">
+                            <div className="p-4 border-b border-white/5 bg-white/5 flex justify-between items-center backdrop-blur-md">
+                                <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                                    <div className="p-1.5 rounded-lg bg-purple-500/20 text-purple-400">
+                                        <MessageSquare className="h-4 w-4" />
+                                    </div>
                                     Comments ({comments.length})
                                 </h2>
                             </div>
 
-                            <div className="flex-1 p-4 space-y-6 overflow-y-auto">
+                            <div className="flex-1 p-4 space-y-6 overflow-y-auto custom-scrollbar">
                                 {comments.length === 0 ? (
-                                    <p className="text-sm text-gray-400 text-center py-8">No comments yet. Be the first!</p>
+                                    <div className="flex flex-col items-center justify-center h-full text-zinc-500 space-y-2">
+                                        <MessageSquare className="h-8 w-8 opacity-20" />
+                                        <p className="text-sm text-center">No comments yet.<br />Be the first to share your thoughts!</p>
+                                    </div>
                                 ) : (
                                     comments.map(c => (
-                                        <div key={c.id} className="group">
+                                        <div key={c.id} className="group animate-in fade-in slide-in-from-bottom-2 duration-300">
                                             <div className="flex space-x-3">
                                                 <div className="flex-shrink-0 mt-1">
-                                                    <div className="h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center text-xs text-indigo-600 font-bold">
+                                                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-700 flex items-center justify-center text-xs text-zinc-300 font-bold border border-white/5">
                                                         A
                                                     </div>
                                                 </div>
-                                                <div className="flex-1">
+                                                <div className="flex-1 space-y-1">
                                                     <div className="flex items-center justify-between">
-                                                        <span className="text-xs font-semibold text-gray-900">Anonymous</span>
-                                                        <span className="text-[10px] text-gray-400">{formatTimeAgo(c.created_at)}</span>
+                                                        <span className="text-xs font-semibold text-white">Anonymous</span>
+                                                        <span className="text-[10px] text-zinc-500">{formatTimeAgo(c.created_at)}</span>
                                                     </div>
-                                                    <p className="text-sm text-gray-600 mt-1 leading-relaxed">{c.text}</p>
-                                                    {c.timestamp_seconds && (
-                                                        <span className="text-xs text-orange-500 mt-1">@ {formatDuration(c.timestamp_seconds)}</span>
-                                                    )}
-                                                    <div className="mt-2 flex items-center space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button className="text-xs text-gray-400 hover:text-gray-600 flex items-center">
-                                                            <ThumbsUp className="h-3 w-3 mr-1" />
-                                                            Like
-                                                        </button>
-                                                        <button className="text-xs text-gray-400 hover:text-gray-600">Reply</button>
+                                                    <div className="p-3 rounded-2xl rounded-tl-none bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                                                        <p className="text-sm text-zinc-300 leading-relaxed">{c.text}</p>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between mt-1 px-1">
+                                                        {c.timestamp_seconds && (
+                                                            <button className="flex items-center text-[10px] font-medium text-purple-400 hover:text-purple-300 transition-colors bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
+                                                                <Play className="h-2 w-2 mr-1 fill-current" />
+                                                                {formatDuration(c.timestamp_seconds)}
+                                                            </button>
+                                                        )}
+                                                        <div className="flex items-center space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button className="text-xs text-zinc-500 hover:text-white flex items-center transition-colors">
+                                                                <ThumbsUp className="h-3 w-3 mr-1" />
+                                                                Like
+                                                            </button>
+                                                            <button className="text-xs text-zinc-500 hover:text-white transition-colors">Reply</button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -290,19 +315,19 @@ export default function VideoPlayer() {
                                 )}
                             </div>
 
-                            <div className="p-4 bg-white border-t border-gray-100 rounded-b-xl">
-                                <form onSubmit={handleCommentSubmit} className="relative">
+                            <div className="p-4 bg-white/5 border-t border-white/5 backdrop-blur-md">
+                                <form onSubmit={handleCommentSubmit} className="relative group">
                                     <input
                                         type="text"
                                         placeholder="Add a comment..."
-                                        className="w-full pl-4 pr-10 py-3 bg-gray-50 border-transparent rounded-lg text-sm focus:bg-white focus:border-orange-500 focus:ring-orange-500 transition-all"
+                                        className="w-full pl-4 pr-12 py-3.5 bg-zinc-900/50 border border-white/10 rounded-xl text-sm text-white placeholder-zinc-500 focus:bg-zinc-900 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all shadow-inner"
                                         value={comment}
                                         onChange={(e) => setComment(e.target.value)}
                                     />
                                     <button
                                         type="submit"
                                         disabled={!comment.trim()}
-                                        className="absolute right-2 top-2 p-1.5 text-gray-400 hover:text-orange-500 disabled:opacity-50 disabled:hover:text-gray-400 transition-colors"
+                                        className="absolute right-2 top-2 bottom-2 aspect-square flex items-center justify-center rounded-lg bg-purple-600 text-white hover:bg-purple-500 disabled:opacity-0 disabled:pointer-events-none transition-all duration-200 shadow-lg shadow-purple-900/20 scale-90 hover:scale-100"
                                     >
                                         <Send className="h-4 w-4" />
                                     </button>
@@ -315,3 +340,5 @@ export default function VideoPlayer() {
         </div>
     );
 }
+
+

@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { Camera, CameraOff, Monitor, RefreshCw, Square, Download, Upload } from 'lucide-react';
+import { Camera, CameraOff, Monitor, RefreshCw, Square, Download, Upload, Mic, MicOff, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const log = (msg: string) => console.log(`[Recorder] ${msg}`);
@@ -14,7 +14,7 @@ export default function Recorder() {
     const [webcamReady, setWebcamReady] = useState(false);
 
     // Initial position for the bubble (bottom-right)
-    const [bubblePos, setBubblePos] = useState({ x: 80, y: 80 });
+    const [bubblePos, setBubblePos] = useState({ x: 85, y: 80 });
     const [isDragging, setIsDragging] = useState(false);
     const dragStartRef = useRef<{ x: number, y: number } | null>(null);
 
@@ -30,7 +30,7 @@ export default function Recorder() {
     const screenVideoRef = useRef<HTMLVideoElement | null>(null);
 
     // To keep track of current position in animation loop without stale closure
-    const bubblePosRef = useRef({ x: 0.8, y: 0.8 });
+    const bubblePosRef = useRef({ x: 0.85, y: 0.8 });
 
     // Initialize webcam on mount
     useEffect(() => {
@@ -167,7 +167,7 @@ export default function Recorder() {
 
             ctx.beginPath();
             ctx.arc(x + bubbleSize / 2, y + bubbleSize / 2, bubbleSize / 2, 0, Math.PI * 2);
-            ctx.strokeStyle = '#f97316'; // orange-500
+            ctx.strokeStyle = '#a855f7'; // purple-500
             ctx.lineWidth = 4;
             ctx.stroke();
         }
@@ -344,7 +344,7 @@ export default function Recorder() {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center space-y-6">
+        <div className="flex flex-col items-center justify-center space-y-8 w-full">
             <canvas ref={canvasRef} style={{ display: 'none' }} />
 
             <video
@@ -355,8 +355,9 @@ export default function Recorder() {
                 style={{ position: 'fixed', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
             />
 
+            {/* Video Canvas Container */}
             <div
-                className="relative w-full max-w-4xl bg-black rounded-lg overflow-hidden aspect-video shadow-2xl cursor-default"
+                className="relative w-full bg-zinc-950 rounded-2xl overflow-hidden aspect-video shadow-2xl cursor-default border border-white/10 ring-1 ring-white/5"
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
@@ -376,12 +377,11 @@ export default function Recorder() {
                 {/* Webcam bubble (visible overlay) */}
                 {webcamEnabled && webcamReady && !previewUrl && (
                     <div
-                        className="absolute w-32 h-32 rounded-full overflow-hidden border-4 border-orange-500 shadow-lg bg-gray-900 cursor-move hover:border-orange-400 transition-colors"
+                        className="absolute w-36 h-36 rounded-full overflow-hidden border-[3px] border-purple-500 shadow-2xl bg-zinc-900 cursor-move hover:border-purple-400 transition-colors z-50 group"
                         style={{
                             left: `${bubblePos.x}%`,
                             top: `${bubblePos.y}%`,
-                            transform: 'translate(-50%, -50%)',
-                            zIndex: 50
+                            transform: 'translate(-50%, -50%)'
                         }}
                         onMouseDown={handleMouseDown}
                     >
@@ -389,95 +389,119 @@ export default function Recorder() {
                             autoPlay
                             playsInline
                             muted
-                            className="w-full h-full object-cover pointer-events-none"
+                            className="w-full h-full object-cover pointer-events-none transform scale-110"
                             ref={(el) => {
                                 if (el && webcamStreamRef.current) {
                                     el.srcObject = webcamStreamRef.current;
                                 }
                             }}
                         />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
                     </div>
                 )}
 
                 {!isRecording && !previewUrl && (
-                    <div className="absolute inset-0 flex items-center justify-center text-white/50 pointer-events-none">
-                        <p>Click "Start Recording" to begin</p>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <div className="bg-black/30 backdrop-blur-sm p-6 rounded-2xl border border-white/10 text-center">
+                            <Monitor className="h-12 w-12 text-zinc-400 mb-3 mx-auto opacity-50" />
+                            <p className="text-zinc-300 font-medium">Ready to record</p>
+                            <p className="text-zinc-500 text-sm mt-1">Click "Start Recording" below</p>
+                        </div>
                     </div>
                 )}
 
                 {/* Upload Progress Overlay */}
                 {isUploading && (
-                    <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 rounded-xl backdrop-blur-sm">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-4"></div>
+                    <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-50 rounded-xl backdrop-blur-md">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mb-4"></div>
                         <p className="text-white text-lg font-medium">Uploading your recording...</p>
-                        <p className="text-gray-400 text-sm mt-2">This may take a few moments</p>
+                        <p className="text-zinc-400 text-sm mt-2">This may take a few moments</p>
                     </div>
                 )}
             </div>
 
-            <div className="w-full max-w-4xl bg-gray-800 text-green-400 text-xs font-mono px-4 py-2 rounded">
-                DEBUG: {debugInfo}
-            </div>
+            {/* Controls Bar */}
+            <div className="w-full flex items-center justify-between p-4 glass rounded-2xl border border-white/10">
 
-            <div className="flex space-x-4 items-center">
-                {!isRecording && !previewUrl && (
-                    <button
-                        onClick={toggleWebcam}
-                        className={`flex items-center px-4 py-3 rounded-full font-semibold shadow-lg transition-all ${webcamEnabled ? 'bg-blue-600 text-white' : 'bg-gray-600 text-white'}`}
-                    >
-                        {webcamEnabled ? <Camera className="w-5 h-5" /> : <CameraOff className="w-5 h-5" />}
-                    </button>
-                )}
-
-                {!isRecording && !previewUrl && (
-                    <button
-                        onClick={startRecording}
-                        className="flex items-center px-6 py-3 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 shadow-lg"
-                    >
-                        <Monitor className="w-5 h-5 mr-2" /> Start Recording
-                    </button>
-                )}
-
-                {isRecording && (
-                    <button
-                        onClick={stopRecording}
-                        className="flex items-center px-6 py-3 bg-red-600 text-white rounded-full hover:bg-red-700 shadow-lg animate-pulse"
-                    >
-                        <Square className="w-5 h-5 mr-2" /> Stop Recording
-                    </button>
-                )}
-
-                {previewUrl && !isRecording && (
-                    <div className="flex space-x-4">
-                        <button
-                            onClick={() => {
-                                setPreviewUrl(null);
-                                chunksRef.current = [];
-                                blobRef.current = null;
-                            }}
-                            className="px-6 py-3 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-800 hover:text-white transition-colors"
-                        >
-                            <RefreshCw className="w-5 h-5 mr-2 inline" />
-                            Discard
-                        </button>
-                        <button
-                            onClick={uploadRecording}
-                            disabled={isUploading}
-                            className="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <Upload className="w-5 h-5 mr-2" />
-                            {isUploading ? 'Uploading...' : 'Save & Share'}
-                        </button>
-                        <a
-                            href={previewUrl}
-                            download={`recording-${Date.now()}.webm`}
-                            className="px-6 py-3 border border-indigo-600 text-indigo-400 rounded-lg hover:bg-indigo-900/30 transition-colors flex items-center"
-                        >
-                            <Download className="w-5 h-5 mr-2" />
-                            Download
-                        </a>
+                <div className="flex items-center space-x-4">
+                    {/* Debug Info */}
+                    <div className="text-xs font-mono text-zinc-500 bg-black/20 px-3 py-1.5 rounded-lg border border-white/5">
+                        {debugInfo}
                     </div>
-                )}
+                </div>
+
+                <div className="flex items-center space-x-4">
+                    {!isRecording && !previewUrl && (
+                        <button
+                            onClick={toggleWebcam}
+                            className={`p-3 rounded-xl transition-all duration-200 border border-white/10 ${webcamEnabled
+                                    ? 'bg-purple-600/20 text-purple-400 border-purple-500/30'
+                                    : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white'
+                                }`}
+                            title={webcamEnabled ? "Disable Camera" : "Enable Camera"}
+                        >
+                            {webcamEnabled ? <Camera className="w-5 h-5" /> : <CameraOff className="w-5 h-5" />}
+                        </button>
+                    )}
+
+                    {!isRecording && !previewUrl && (
+                        <button
+                            onClick={startRecording}
+                            className="flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-500 hover:to-pink-500 shadow-lg shadow-purple-900/20 font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                            <div className="w-2 h-2 rounded-full bg-white animate-pulse mr-2.5"></div>
+                            Start Recording
+                        </button>
+                    )}
+
+                    {isRecording && (
+                        <button
+                            onClick={stopRecording}
+                            className="flex items-center px-6 py-3 bg-red-500/10 border border-red-500/50 text-red-500 rounded-xl hover:bg-red-500/20 shadow-lg shadow-red-900/10 font-medium transition-all animate-pulse"
+                        >
+                            <Square className="w-4 h-4 mr-2.5 fill-current" />
+                            Stop Recording
+                        </button>
+                    )}
+
+                    {previewUrl && !isRecording && (
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={() => {
+                                    setPreviewUrl(null);
+                                    chunksRef.current = [];
+                                    blobRef.current = null;
+                                }}
+                                className="px-5 py-2.5 border border-white/10 text-zinc-400 rounded-xl hover:bg-white/5 hover:text-white transition-colors flex items-center text-sm font-medium"
+                            >
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                                Retake
+                            </button>
+                            <a
+                                href={previewUrl}
+                                download={`recording-${Date.now()}.webm`}
+                                className="px-5 py-2.5 border border-purple-500/30 text-purple-400 rounded-xl hover:bg-purple-500/10 transition-colors flex items-center text-sm font-medium"
+                            >
+                                <Download className="w-4 h-4 mr-2" />
+                                Download
+                            </a>
+                            <button
+                                onClick={uploadRecording}
+                                disabled={isUploading}
+                                className="flex items-center px-6 py-2.5 bg-white text-black rounded-xl hover:bg-zinc-200 shadow-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-[1.02] active:scale-[0.98] text-sm"
+                            >
+                                <Upload className="w-4 h-4 mr-2" />
+                                {isUploading ? 'Uploading...' : 'Save & Share'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex items-center space-x-2">
+                    <button className="p-2 text-zinc-500 hover:text-white transition-colors">
+                        <Settings className="w-5 h-5" />
+                    </button>
+                </div>
             </div>
         </div>
     );

@@ -1,133 +1,160 @@
 
-import React, { useEffect, useState } from 'react';
-import { Video, Play, Calendar } from 'lucide-react';
+import { Video, MoreVertical, Share2, Trash2, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-interface VideoItem {
-    id: string; // custom_slug or wistia_hashed_id
-    wistiaId?: string;
-    title: string;
-    createdAt: string;
-    thumbnailUrl?: string;
-    duration?: number;
-    views?: number;
-    customSlug?: string;
-}
+const videos = [
+    {
+        id: 1,
+        title: 'Product Demo Walkthrough',
+        thumbnail: 'https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?w=800&auto=format&fit=crop&q=60',
+        duration: '02:14',
+        views: 124,
+        createdAt: '2 hours ago',
+        author: 'John Doe'
+    },
+    {
+        id: 2,
+        title: 'Q4 Marketing Strategy',
+        thumbnail: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&auto=format&fit=crop&q=60',
+        duration: '05:32',
+        views: 89,
+        createdAt: '1 day ago',
+        author: 'John Doe'
+    },
+    {
+        id: 3,
+        title: 'Bug Report - Login Issue',
+        thumbnail: 'https://images.unsplash.com/photo-1555099962-4199c345e5dd?w=800&auto=format&fit=crop&q=60',
+        duration: '01:05',
+        views: 45,
+        createdAt: '2 days ago',
+        author: 'John Doe'
+    },
+    {
+        id: 4,
+        title: 'Team Standup Recording',
+        thumbnail: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&auto=format&fit=crop&q=60',
+        duration: '15:20',
+        views: 236,
+        createdAt: '3 days ago',
+        author: 'John Doe'
+    },
+    {
+        id: 5,
+        title: 'Client Feedback Review',
+        thumbnail: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=800&auto=format&fit=crop&q=60',
+        duration: '08:45',
+        views: 67,
+        createdAt: '4 days ago',
+        author: 'John Doe'
+    }
+];
 
 export default function Home() {
-    const [videos, setVideos] = useState<VideoItem[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3003'}/videos`)
-            .then(res => res.json())
-            .then(data => {
-                setVideos(Array.isArray(data) ? data : []);
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error('Failed to fetch videos', err);
-                setLoading(false);
-            });
-    }, []);
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-            </div>
-        );
-    }
-
-    if (videos.length === 0) {
-        return (
-            <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-                <div className="bg-orange-50 p-4 rounded-full mb-4">
-                    <Video className="h-8 w-8 text-orange-500" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No videos yet</h3>
-                <p className="text-gray-500 max-w-sm mb-6">
-                    Record your first video to share your ideas with the world.
-                </p>
-                <Link
-                    to="/record"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-gray-900 hover:bg-black transition-all"
-                >
-                    Start Recording
-                </Link>
-            </div>
-        );
-    }
-
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-end border-b border-gray-100 pb-4">
+        <div className="space-y-8">
+            <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Library</h1>
-                    <p className="text-sm text-gray-500 mt-1">{videos.length} videos</p>
+                    <h1 className="text-3xl font-bold text-white tracking-tight">Welcome back, John 👋</h1>
+                    <p className="mt-1 text-zinc-400 font-medium">Here's what happened while you were away.</p>
+                </div>
+                <div className="hidden sm:block">
+                    <button className="text-sm text-zinc-400 hover:text-white transition-colors font-medium">
+                        View all activity
+                    </button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {videos.map((video) => (
-                    <Link
-                        to={`/aum/${video.customSlug || video.id}`}
-                        key={video.id}
-                        className="group flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all hover:border-orange-200"
-                    >
-                        {/* Thumbnail */}
-                        <div className="aspect-video bg-gray-100 relative overflow-hidden group-hover:bg-gray-50">
-                            {video.thumbnailUrl ? (
+            <section>
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                        <Video className="h-5 w-5 text-purple-400" />
+                        Recent Videos
+                    </h2>
+                    <div className="flex gap-2">
+                        <select className="bg-white/5 border border-white/10 rounded-lg text-sm text-zinc-300 px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500/50">
+                            <option>All Videos</option>
+                            <option>My Recordings</option>
+                            <option>Shared with me</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {videos.map((video, index) => (
+                        <div
+                            key={video.id}
+                            className="group relative bg-zinc-900/40 border border-white/5 rounded-2xl overflow-hidden hover:border-purple-500/50 hover:bg-zinc-900/60 transition-all duration-300 hover:shadow-xl hover:shadow-purple-900/10 hover:-translate-y-1 opacity-0 animate-fade-in-up"
+                            style={{ animationDelay: `${index * 100}ms` }}
+                        >
+                            <Link to={`/video/${video.id}`} className="block relative aspect-video overflow-hidden">
                                 <img
-                                    src={video.thumbnailUrl}
+                                    src={video.thumbnail}
                                     alt={video.title}
-                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
                                 />
-                            ) : (
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <Video className="h-8 w-8 text-gray-300" />
-                                </div>
-                            )}
+                                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors" />
 
-                            {/* Duration Badge */}
-                            {video.duration && (
-                                <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded font-medium">
-                                    {formatDuration(video.duration)}
+                                {/* Duration Badge */}
+                                <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/70 backdrop-blur-md rounded-md text-xs font-semibold text-white">
+                                    {video.duration}
                                 </div>
-                            )}
 
-                            {/* Play Overlay */}
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 backdrop-blur-[2px]">
-                                <div className="bg-white/90 rounded-full p-3 shadow-sm transform scale-90 group-hover:scale-100 transition-transform">
-                                    <Play className="h-5 w-5 text-orange-600 fill-orange-600 ml-0.5" />
+                                {/* Play Overlay */}
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 text-white shadow-xl">
+                                        <Play className="h-5 w-5 fill-white ml-0.5" />
+                                    </div>
+                                </div>
+                            </Link>
+
+                            <div className="p-4">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex-1 min-w-0 pr-3">
+                                        <Link to={`/video/${video.id}`} className="block">
+                                            <h3 className="text-base font-semibold text-zinc-100 truncate group-hover:text-purple-400 transition-colors">
+                                                {video.title}
+                                            </h3>
+                                        </Link>
+                                        <div className="mt-1 flex items-center text-xs text-zinc-500">
+                                            <span className="font-medium text-zinc-400">{video.createdAt}</span>
+                                            <span className="mx-1.5">•</span>
+                                            <span>{video.views} views</span>
+                                        </div>
+                                    </div>
+                                    <button className="text-zinc-500 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-lg">
+                                        <MoreVertical className="h-4 w-4" />
+                                    </button>
+                                </div>
+
+                                {/* Actions that appear on hover */}
+                                <div className="mt-4 flex items-center gap-2 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 transform translate-y-2 group-hover:translate-y-0">
+                                    <button className="flex-1 flex items-center justify-center gap-2 text-xs font-medium py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 transition-colors">
+                                        <Share2 className="h-3 w-3" />
+                                        Share
+                                    </button>
+                                    <button className="flex items-center justify-center p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 transition-colors">
+                                        <Trash2 className="h-3 w-3" />
+                                    </button>
                                 </div>
                             </div>
                         </div>
+                    ))}
 
-                        {/* Content */}
-                        <div className="p-4 flex flex-col flex-1">
-                            <h3 className="font-semibold text-gray-900 line-clamp-1 group-hover:text-orange-600 transition-colors">
-                                {video.title}
-                            </h3>
-                            <div className="mt-auto pt-3 flex items-center justify-between text-xs text-gray-500">
-                                <div className="flex items-center">
-                                    <Calendar className="h-3 w-3 mr-1" />
-                                    {new Date(video.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                </div>
-                                {video.views !== undefined && (
-                                    <span>{video.views} views</span>
-                                )}
-                            </div>
+                    {/* New Video Placeholder */}
+                    <Link
+                        to="/record"
+                        className="group relative bg-zinc-900/20 border border-white/5 border-dashed rounded-2xl overflow-hidden hover:border-purple-500/50 hover:bg-purple-900/5 transition-all duration-300 flex flex-col items-center justify-center min-h-[250px] gap-3 opacity-0 animate-fade-in-up"
+                        style={{ animationDelay: `${videos.length * 100}ms` }}
+                    >
+                        <div className="w-12 h-12 rounded-full bg-zinc-800 group-hover:bg-purple-600 group-hover:scale-110 transition-all duration-300 flex items-center justify-center shadow-lg">
+                            <Video className="h-5 w-5 text-zinc-400 group-hover:text-white" />
                         </div>
+                        <span className="font-medium text-zinc-400 group-hover:text-purple-300 transition-colors">Record New Video</span>
                     </Link>
-                ))}
-            </div>
+
+                </div>
+            </section>
         </div>
     );
-}
-
-function formatDuration(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
